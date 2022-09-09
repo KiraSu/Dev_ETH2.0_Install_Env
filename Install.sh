@@ -109,7 +109,7 @@ elif [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_GETH"* ]]; then
     if [ ! -d "$HOME/go-ethereum" ]; then
         cd $HOME && git clone https://github.com/ethereum/go-ethereum.git
     fi
-    cd go-ethereum && git checkout $GETH_TAG_VERSION && make -j8 && cp ./build/bin/* $HOME/bin
+    cd go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8 && cp ./build/bin/* $HOME/bin
 
     sudo echo -e "[Unit]\n\
 Description=Geth Execution Client (${NETWORK} Network)\n\
