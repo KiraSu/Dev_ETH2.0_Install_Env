@@ -129,4 +129,8 @@ else
     exit -1
 fi
 
+sudo systemctl daemon-reload
+sudo systemctl start $CURRENT_HOST_CLIENT
+sudo systemctl status $CURRENT_HOST_CLIENT
+
 
