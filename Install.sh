@@ -63,7 +63,7 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     if [ ! -d "$HOME/lighthouse" ]; then
         cd $HOME && git clone https://github.com/sigp/lighthouse.git
     fi
-    cd lighthouse && git checkout stable && make -j8 && cp ./target/release/lighthouse $HOME/bin
+    cd $HOME/lighthouse && git checkout stable && make -j8 && cp ./target/release/lighthouse $HOME/bin
     
     #Set JWTSecrect
     if [[ $EXECUTION_JWTSECRET = "" ]]
@@ -109,7 +109,7 @@ elif [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_GETH"* ]]; then
     if [ ! -d "$HOME/go-ethereum" ]; then
         cd $HOME && git clone https://github.com/ethereum/go-ethereum.git
     fi
-    cd go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8 && cp ./build/bin/* $HOME/bin
+    cd $HOME/go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8 && cp ./build/bin/* $HOME/bin
 
     sudo echo -e "[Unit]\n\
 Description=Geth Execution Client (${NETWORK} Network)\n\
