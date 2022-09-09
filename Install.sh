@@ -26,16 +26,6 @@ then
     cd $HOME && rm -r cmake-$CMAKE_VERSION && rm cmake-$CMAKE_VERSION.tar.gz
 fi
 
-#Geth/Lighthouse service bin director
-if [ ! -d "$HOME/bin" ]; then
-    mkdir -p $HOME/bin
-fi
-
-#Create Geth/Lightouse data director
-if [ ! -d "$HOME/data" ]; then
-    mkdir -p $HOME/data
-fi
-
 if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     CURRENT_HOST_CLIENT=$SUB_HOSTNAME_LIGHTHOUSE
 
@@ -63,7 +53,7 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     if [ ! -d "$HOME/lighthouse" ]; then
         cd $HOME && git clone https://github.com/sigp/lighthouse.git
     fi
-    cd $HOME/lighthouse && git checkout stable && make -j8 && cp ./target/release/lighthouse $HOME/bin
+    cd $HOME/lighthouse && git checkout stable && make -j8 && cp ./target/release/lighthouse /usr/local/bin
     
     #Set JWTSecrect
     if [[ $EXECUTION_JWTSECRET = "" ]]
@@ -75,21 +65,21 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     fi
 
     #Add System Service
-    sudo echo -e "[Unit]\n\
+    echo -e "[Unit]\n\
 Description=Lighthouse Consensus Client (${NETWORK} Network)\n\
-Wants=network-online.target\n\
-After=network-online.target\n\
+Wants=network.target\n\
+After=network.target\n\n\
 [Service]\n\
 User=${SUB_HOSTNAME_LIGHTHOUSE}\n\
 Group=${SUB_HOSTNAME_LIGHTHOUSE}\n\
 Type=simple\n\
 Restart=always\n\
 RestartSec=5\n\
-ExecStart=${HOME}/bin/lighthouse -d $HOME/data/.lighthouse/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=${BEACON_NODE_CHECKPOINT_URL} --http --execution-endpoint http://${EXECUTION_ENDPOINT}:8551 --execution-jwt $HOME/data/.lighthouse/${NETWORK}/jwtsecret\n\
+ExecStart=/usr/local/bin/lighthouse -d $HOME/data/.lighthouse/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=${BEACON_NODE_CHECKPOINT_URL} --http --execution-endpoint http://${EXECUTION_ENDPOINT}:8551 --execution-jwt $HOME/data/.lighthouse/${NETWORK}/jwtsecret\n\n\
 [Install]\n\
-WantedBy=multi-user.target\n" > /etc/systemd/system/${SUB_HOSTNAME_LIGHTHOUSE}.service
+WantedBy=default.target\n" | sudo tee /etc/systemd/system/${SUB_HOSTNAME_LIGHTHOUSE}.service > /dev/null
 elif [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_GETH"* ]]; then
-    CURRENT_HOST_CLIENT=$SUB_HOSTNAME_LIGHTHOUSE
+    CURRENT_HOST_CLIENT=$SUB_HOSTNAME_GETH
 
     #Create 'geth' user for system service
     if id "$SUB_HOSTNAME_GETH" &>/dev/null; then
@@ -109,24 +99,30 @@ elif [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_GETH"* ]]; then
     if [ ! -d "$HOME/go-ethereum" ]; then
         cd $HOME && git clone https://github.com/ethereum/go-ethereum.git
     fi
-    cd $HOME/go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8 && cp ./build/bin/* $HOME/bin
+    cd $HOME/go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8 && sudo cp ./build/bin/* /usr/local/bin
 
-    sudo echo -e "[Unit]\n\
+    echo -e "[Unit]\n\
 Description=Geth Execution Client (${NETWORK} Network)\n\
-Wants=network-online.target\n\
-After=network-online.target\n\
+Wants=network.target\n\
+After=network.target\n\n\
 [Service]\n\
 User=${SUB_HOSTNAME_GETH}\n\
 Group=${SUB_HOSTNAME_GETH}\n\
 Type=simple\n\
 Restart=always\n\
 RestartSec=5\n\
-ExecStart=${HOME}/bin/geth --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --datadir $HOME/data/.ethereum/${NETWORK}\n\
+ExecStart=/usr/local/bin/geth --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --datadir /var/lib/${CURRENT_HOST_CLIENT}/.ethereum/${NETWORK}\n\n\
 [Install]\n\
-WantedBy=multi-user.target\n" > /etc/systemd/system/${SUB_HOSTNAME_GETH}.service
+WantedBy=default.target\n" | sudo tee /etc/systemd/system/${SUB_HOSTNAME_GETH}.service > /dev/null
 else
     echo "Unknow hostname: ${THIS_HOSTNAME}"
     exit -1
+fi
+
+#Create Geth/Lightouse data director
+if [ ! -d "/var/lib/${CURRENT_HOST_CLIENT}" ]; then
+    sudo mkdir -p /var/lib/$CURRENT_HOST_CLIENT
+    sudo chown -R $CURRENT_HOST_CLIENT:$CURRENT_HOST_CLIENT /var/lib/${CURRENT_HOST_CLIENT}
 fi
 
 sudo systemctl daemon-reload
