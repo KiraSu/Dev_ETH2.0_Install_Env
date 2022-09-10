@@ -23,7 +23,7 @@ then
     cd $HOME
     wget https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.tar.gz
     tar -zxf cmake-$CMAKE_VERSION.tar.gz && cd cmake-$CMAKE_VERSION && ./bootstrap && make -j8 && sudo make install
-    cd $HOME && rm -r cmake-$CMAKE_VERSION && rm cmake-$CMAKE_VERSION.tar.gz
+    cd $HOME && sudo rm -r cmake-$CMAKE_VERSION && sudo rm cmake-$CMAKE_VERSION.tar.gz
 fi
 
 if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
@@ -87,8 +87,6 @@ elif [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_GETH"* ]]; then
     else
 	echo "Creating User ${SUB_HOSTNAME_GETH}"
         sudo useradd --no-create-home --shell /bin/false $SUB_HOSTNAME_GETH
-        mkdir -p $HOME/data
-        sudo chown -R $SUB_HOSTNAME_GETH:$SUB_HOSTNAME_GETH $HOME/data
     fi
     
     if [[ $(systemctl is-active $SUB_HOSTNAME_GETH) == "active" ]]; then
