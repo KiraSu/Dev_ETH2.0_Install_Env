@@ -15,6 +15,7 @@ EXECUTION_ENDPOINT=127.0.0.1
 EXECUTION_JWTSECRET=
 #############################################################################
 
+sudo yum update -y
 sudo yum install -y git gcc g++ make pkg-config llvm-dev libclang-dev clang openssl-devel go
 
 #Check cmake
@@ -118,10 +119,8 @@ else
 fi
 
 #Create Geth/Lightouse data director
-if [ ! -d "/var/lib/${CURRENT_HOST_CLIENT}" ]; then
-    sudo mkdir -p /var/lib/$CURRENT_HOST_CLIENT
-    sudo chown -R $CURRENT_HOST_CLIENT:$CURRENT_HOST_CLIENT /var/lib/${CURRENT_HOST_CLIENT}
-fi
+sudo mkdir -p /var/lib/$CURRENT_HOST_CLIENT
+sudo chown -R $CURRENT_HOST_CLIENT:$CURRENT_HOST_CLIENT /var/lib/${CURRENT_HOST_CLIENT}
 
 sudo systemctl daemon-reload
 sudo systemctl start $CURRENT_HOST_CLIENT
