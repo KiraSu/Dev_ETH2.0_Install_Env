@@ -11,8 +11,8 @@ GETH_TAG_VERSION=v1.10.23
 NETWORK=goerli
 #Consensus Client Config
 BEACON_NODE_CHECKPOINT_URL=https://goerli.checkpoint-sync.ethdevops.io
-EXECUTION_ENDPOINT=127.0.0.1
-EXECUTION_JWTSECRET=
+EXECUTION_ENDPOINT=172.31.15.113
+EXECUTION_JWTSECRET=0xd80f0ed48f72a86c2288035fd4b121f4c82634e4681f3f34859d8998eadc3609
 #############################################################################
 
 sudo yum update -y
@@ -34,6 +34,7 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     if ! command -v rustc &> /dev/null
     then
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+	source "$HOME/.cargo/env"
     fi
 
     #Create 'lighthouse' user for system service
@@ -42,8 +43,6 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     else
 	echo "Creating User ${SUB_HOSTNAME_LIGHTHOUSE}"
         sudo useradd --no-create-home --shell /bin/false $SUB_HOSTNAME_LIGHTHOUSE
-        mkdir -p $HOME/data
-        sudo chown -R $SUB_HOSTNAME_LIGHTHOUSE:$SUB_HOSTNAME_LIGHTHOUSE $HOME/data
     fi
     
     if [[ $(systemctl is-active $SUB_HOSTNAME_LIGHTHOUSE) == "active" ]]; then
@@ -54,15 +53,14 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     if [ ! -d "$HOME/lighthouse" ]; then
         cd $HOME && git clone https://github.com/sigp/lighthouse.git
     fi
-    cd $HOME/lighthouse && git checkout stable && make -j8 && cp ./target/release/lighthouse /usr/local/bin
+    cd $HOME/lighthouse && git checkout stable && make -j8 && sudo cp ./target/release/lighthouse /usr/local/bin
     
     #Set JWTSecrect
     if [[ $EXECUTION_JWTSECRET = "" ]]
     then
         EXECUTION_JWTSECRET=$HOME/data/.ethereum/goerli/geth/jwtsecret
     else
-        echo -e ${EXECUTION_JWTSECRET} > $HOME/data/.lighthouse/${NETWORK}/jwtsecret
-	EXECUTION_JWTSECRET=$HOME/data/.lighthouse/${NETWORK}/jwtsecret
+	echo -e "${EXECUTION_JWTSECRET}" | sudo tee /var/lib/lighthouse/.lighthouse/${NETWORK}/jwtsecret > /dev/null
     fi
 
     #Add System Service
@@ -76,7 +74,7 @@ Group=${SUB_HOSTNAME_LIGHTHOUSE}\n\
 Type=simple\n\
 Restart=always\n\
 RestartSec=5\n\
-ExecStart=/usr/local/bin/lighthouse -d $HOME/data/.lighthouse/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=${BEACON_NODE_CHECKPOINT_URL} --http --execution-endpoint http://${EXECUTION_ENDPOINT}:8551 --execution-jwt $HOME/data/.lighthouse/${NETWORK}/jwtsecret\n\n\
+ExecStart=/usr/local/bin/lighthouse -d /var/lib/lighthouse/.lighthouse/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=${BEACON_NODE_CHECKPOINT_URL} --http --execution-endpoint http://${EXECUTION_ENDPOINT}:8551 --execution-jwt /var/lib/lighthouse/.lighthouse/${NETWORK}/jwtsecret\n\n\
 [Install]\n\
 WantedBy=default.target\n" | sudo tee /etc/systemd/system/${SUB_HOSTNAME_LIGHTHOUSE}.service > /dev/null
 elif [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_GETH"* ]]; then
