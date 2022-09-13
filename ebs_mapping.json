@@ -1,0 +1,16 @@
+[
+    {
+        "DeviceName": "/dev/xvda",
+        "Ebs": {
+            "VolumeType": "gp3",
+            "VolumeSize": 64
+        }
+    },
+    {
+	"DeviceName": "/dev/sdf",
+        "Ebs": {
+            "VolumeType": "gp3",
+            "VolumeSize": 256
+        }
+    }
+]
