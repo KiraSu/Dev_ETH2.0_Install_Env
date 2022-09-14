@@ -1,22 +1,28 @@
 #!/bin/bash
 
+ARCHI=$(uname -m)
 NETWORK=Goerli
-
 ResTagArr=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Lighthouse_${NETWORK}}]")
 
 sudo yum update -y
-sudo yum install -y jq
+
+if ! command -v jq &> /dev/null
+then
+    sudo yum install -y jq
+fi
 
 #Install AWS Cli
 if command -v aws &> /dev/null
 then
     #aws-cli/2.7.31 Python/3.9.11 Linux/5.10.130-118.517.amzn2.aarch64 exe/aarch64.amzn.2 prompt/off
     if [ $(which aws) = "/usr/bin/aws" ]; then
-        cd $HOME && curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install
+	echo "Upgrade AWS Cli..."
+        cd $HOME && curl "https://awscli.amazonaws.com/awscli-exe-linux-$ARCHI.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install
         rm -r aws && rm awscliv2.zip
     fi
 else
-    cd $HOME && curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install
+    echo "Install AWS Cli...."
+    cd $HOME && curl "https://awscli.amazonaws.com/awscli-exe-linux-$ARCHI.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install
     rm -r aws && rm awscliv2.zip
 fi
 
