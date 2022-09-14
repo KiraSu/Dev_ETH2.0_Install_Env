@@ -2,7 +2,7 @@
 
 ARCHI=$(uname -m)
 NETWORK=Goerli
-RUN_DIR=($pwd)
+RUN_DIR=$(pwd)
 ResTagArr=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Lighthouse_${NETWORK}}]")
 
 sudo yum update -y
