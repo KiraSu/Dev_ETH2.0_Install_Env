@@ -3,7 +3,8 @@
 ARCHI=$(uname -m)
 NETWORK=Goerli
 RUN_DIR=$(pwd)
-ResTagArr=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Lighthouse_${NETWORK}}]")
+#"ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Lighthouse_${NETWORK}}]"
+ResTagArr=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Geth_${NETWORK}}]")
 
 sudo yum update -y
 
@@ -36,5 +37,9 @@ echo "EC2_Info: ${EC2_Info}"
 for tagValue in ${ResTagArr[@]}
 do
     EC2Result=$(aws ec2 run-instances --no-cli-page --image-id $(echo $EC2_Info | jq -r '.[0].ImageId') --count 1 --instance-type $(echo $EC2_Info | jq -r '.[0].InstanceType') --key-name $(echo $EC2_Info | jq -r '.[0].KeyName') --security-group-ids $(echo $EC2_Info | jq -r '.[0].GroupId') --subnet-id $(echo $EC2_Info | jq -r '.[0].SubnetId') --associate-public-ip-address --block-device-mappings file://$RUN_DIR/ebs_mapping.json --tag-specifications $tagValue)
+    
     echo $EC2Result
+    EC2WaitStateRunning=$(aws ec2 wait instance-running --instance-ids $(echo $EC2Result | jq -r '.Instances[0].InstanceId'))
+    
+    #ssh -i $RUN_DIR/key.pem ec2-user@$(echo $EC2Result | jq -r '.Instances[0].PrivateIpAddress') ''
 done
