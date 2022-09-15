@@ -8,12 +8,20 @@ CMAKE_VERSION=3.24.1
 GETH_TAG_VERSION=v1.10.23
 
 #############################################################################
-NETWORK=goerli
+#NETWORK=goerli
 #Consensus Client Config
-BEACON_NODE_CHECKPOINT_URL=https://goerli.checkpoint-sync.ethdevops.io
-EXECUTION_ENDPOINT=172.31.15.113
-EXECUTION_JWTSECRET=0xd80f0ed48f72a86c2288035fd4b121f4c82634e4681f3f34859d8998eadc3609
+#BEACON_NODE_CHECKPOINT_URL=https://goerli.checkpoint-sync.ethdevops.io
+#EXECUTION_ENDPOINT=172.31.15.113
+#EXECUTION_JWTSECRET=0xd80f0ed48f72a86c2288035fd4b121f4c82634e4681f3f34859d8998eadc3609
 #############################################################################
+
+sudo pvcreate /dev/nvme1n1
+sudo vgcreate vg_default /dev/sdf
+sudo lvcreate -l 100%VG -n lv_data vg_default
+sudo mkfs.ext4 /dev/vg_default/lv_data
+sudo mkdir -p /var/lib/geth
+sudo mount -t ext4 /dev/vg_default/lv_data /var/lib/geth
+echo "/dev/mapper/vg_default-lv_data /var/lib/geth ext4 defaults 0 0" | sudo tee -a /etc/fstab
 
 sudo yum update -y
 sudo yum install -y git gcc g++ make pkg-config llvm-dev libclang-dev clang openssl-devel go
@@ -33,8 +41,8 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     #Check rust
     if ! command -v rustc &> /dev/null
     then
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-	source "$HOME/.cargo/env"
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs >> rust.sh && sudo chmod a+x rust.sh && ./rust.sh -f
+	source "$HOME/.cargo/env" && rm rust.sh
     fi
 
     #Create 'lighthouse' user for system service
@@ -118,6 +126,15 @@ fi
 
 #Create Geth/Lightouse data director
 sudo mkdir -p /var/lib/$CURRENT_HOST_CLIENT
+
+#Create pv vg lv
+sudo pvcreate /dev/nvme1n1
+sudo vgcreate vg_default /dev/sdf
+sudo lvcreate -l 100%VG -n lv_data vg_default
+sudo mkfs.ext4 /dev/vg_default/lv_data
+sudo mount -t ext4 /dev/vg_default/lv_data /var/lib/geth
+echo "/dev/mapper/vg_default-lv_data /var/lib/geth ext4 defaults 0 0" | sudo tee -a /etc/fstab
+
 sudo chown -R $CURRENT_HOST_CLIENT:$CURRENT_HOST_CLIENT /var/lib/${CURRENT_HOST_CLIENT}
 
 sudo systemctl daemon-reload

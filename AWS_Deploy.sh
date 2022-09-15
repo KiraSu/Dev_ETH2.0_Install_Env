@@ -41,5 +41,29 @@ do
     echo $EC2Result
     EC2WaitStateRunning=$(aws ec2 wait instance-running --instance-ids $(echo $EC2Result | jq -r '.Instances[0].InstanceId'))
     
-    #ssh -i $RUN_DIR/key.pem ec2-user@$(echo $EC2Result | jq -r '.Instances[0].PrivateIpAddress') ''
+    RemoteEC2Hostname=$(echo $EC2Result | jq -r '.Instances[0].Tags[0].Value')
+    RemoteEC2IpAddr="$(echo $EC2Result | jq -r '.Instances[0].PrivateIpAddress')"
+    RemoteSSHEC2Info="ec2-user@$RemoteEC2IpAddr"
+
+    CMDModifyRemoteEC2HostName="ssh -i $RUN_DIR/key.pem 'hostnamectl --static set-hostname $RemoteEC2Hostname'"
+    echo "CMDModifyRemoteEC2HostName: $CMDModifyRemoteEC2HostName"
+    eval $CMDModifyRemoteEC2HostName
+
+    CMDCopyInstallScript="scp -i $RUN_DIR/key.pem ./Install.sh $RemoteSSHEC2Info"
+    echo "CMDCopyInstallScript: $CMDCopyInstallScript"
+    eval $CMDCopyInstallScript
+
+    CMDExeScript="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'NETWORK=$NETWORK BEACON_NODE_CHECKPOINT_URL=$BEACON_NODE_CHECKPOINT_URL EXECUTION_ENDPOINT=$EXECUTION_ENDPOINT EXECUTION_JWTSECRET=$EXECUTION_JWTSECRET /home/ec2-user/Install.sh'"
+    echo $CMD
+    eval $CMD
+    
+    if [[ $RemoteEC2Hostname == *"Geth"* ]]; then
+	CMDGetJWTSecret="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo cat /var/lib/geth/.ethereum/goerli/geth/jwtsecret'"
+        BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
+	EXECUTION_ENDPOINT=$RemoteEC2IpAddr
+	EXECUTION_JWTSECRET=$(eval $CMDGetJWTSecret)
+
+	echo "EXECUTION_JWTSECRET: $EXECUTION_JWTSECRET"
+    fi
 done
+
