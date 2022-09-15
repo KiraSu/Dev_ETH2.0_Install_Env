@@ -1,10 +1,9 @@
 #!/bin/bash
 
 ARCHI=$(uname -m)
-NETWORK=Goerli
+NETWORK=goerli
 RUN_DIR=$(pwd)
-#"ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Lighthouse_${NETWORK}}]"
-ResTagArr=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Geth_${NETWORK}}]")
+ResTagArr=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH_geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=TestETH_lighthouse_${NETWORK}}]")
 
 sudo yum update -y
 
@@ -45,19 +44,19 @@ do
     RemoteEC2IpAddr="$(echo $EC2Result | jq -r '.Instances[0].PrivateIpAddress')"
     RemoteSSHEC2Info="ec2-user@$RemoteEC2IpAddr"
 
-    CMDModifyRemoteEC2HostName="ssh -i $RUN_DIR/key.pem 'hostnamectl --static set-hostname $RemoteEC2Hostname'"
+    CMDModifyRemoteEC2HostName="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo hostnamectl --static set-hostname '$RemoteEC2Hostname''"
     echo "CMDModifyRemoteEC2HostName: $CMDModifyRemoteEC2HostName"
     eval $CMDModifyRemoteEC2HostName
 
-    CMDCopyInstallScript="scp -i $RUN_DIR/key.pem ./Install.sh $RemoteSSHEC2Info"
+    CMDCopyInstallScript="scp -i $RUN_DIR/key.pem ./Install.sh $RemoteSSHEC2Info:~"
     echo "CMDCopyInstallScript: $CMDCopyInstallScript"
     eval $CMDCopyInstallScript
 
     CMDExeScript="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'NETWORK=$NETWORK BEACON_NODE_CHECKPOINT_URL=$BEACON_NODE_CHECKPOINT_URL EXECUTION_ENDPOINT=$EXECUTION_ENDPOINT EXECUTION_JWTSECRET=$EXECUTION_JWTSECRET /home/ec2-user/Install.sh'"
-    echo $CMD
-    eval $CMD
+    echo $CMDExeScript
+    eval $CMDExeScript
     
-    if [[ $RemoteEC2Hostname == *"Geth"* ]]; then
+    if [[ $RemoteEC2Hostname == *"geth"* ]]; then
 	CMDGetJWTSecret="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo cat /var/lib/geth/.ethereum/goerli/geth/jwtsecret'"
         BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
 	EXECUTION_ENDPOINT=$RemoteEC2IpAddr

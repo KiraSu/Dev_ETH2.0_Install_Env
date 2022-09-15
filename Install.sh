@@ -15,13 +15,10 @@ GETH_TAG_VERSION=v1.10.23
 #EXECUTION_JWTSECRET=0xd80f0ed48f72a86c2288035fd4b121f4c82634e4681f3f34859d8998eadc3609
 #############################################################################
 
-sudo pvcreate /dev/nvme1n1
-sudo vgcreate vg_default /dev/sdf
-sudo lvcreate -l 100%VG -n lv_data vg_default
-sudo mkfs.ext4 /dev/vg_default/lv_data
-sudo mkdir -p /var/lib/geth
-sudo mount -t ext4 /dev/vg_default/lv_data /var/lib/geth
-echo "/dev/mapper/vg_default-lv_data /var/lib/geth ext4 defaults 0 0" | sudo tee -a /etc/fstab
+echo "NETWORK: $NETWORK"
+echo "BEACON_NODE_CHECKPOINT_URL: $BEACON_NODE_CHECKPOINT_URL"
+echo "EXECUTION_ENDPOINT: $EXECUTION_ENDPOINT"
+echo "EXECUTION_JWTSECRET: $EXECUTION_JWTSECRET"
 
 sudo yum update -y
 sudo yum install -y git gcc g++ make pkg-config llvm-dev libclang-dev clang openssl-devel go
@@ -132,7 +129,7 @@ sudo pvcreate /dev/nvme1n1
 sudo vgcreate vg_default /dev/sdf
 sudo lvcreate -l 100%VG -n lv_data vg_default
 sudo mkfs.ext4 /dev/vg_default/lv_data
-sudo mount -t ext4 /dev/vg_default/lv_data /var/lib/geth
+sudo mount -t ext4 /dev/vg_default/lv_data /var/lib/$CURRENT_HOST_CLIENT
 echo "/dev/mapper/vg_default-lv_data /var/lib/geth ext4 defaults 0 0" | sudo tee -a /etc/fstab
 
 sudo chown -R $CURRENT_HOST_CLIENT:$CURRENT_HOST_CLIENT /var/lib/${CURRENT_HOST_CLIENT}
