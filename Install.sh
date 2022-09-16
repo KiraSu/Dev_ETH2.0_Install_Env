@@ -38,7 +38,7 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     #Check rust
     if ! command -v rustc &> /dev/null
     then
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs >> rust.sh && sudo chmod a+x rust.sh && ./rust.sh -f
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs >> rust.sh && sudo chmod a+x rust.sh && ./rust.sh -y
 	source "$HOME/.cargo/env" && rm rust.sh
     fi
 
