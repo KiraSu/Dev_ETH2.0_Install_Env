@@ -44,7 +44,7 @@ do
     RemoteEC2IpAddr="$(echo $EC2Result | jq -r '.Instances[0].PrivateIpAddress')"
     RemoteSSHEC2Info="ec2-user@$RemoteEC2IpAddr"
 
-    CMDModifyRemoteEC2HostName="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo hostnamectl --static set-hostname '$RemoteEC2Hostname''"
+    CMDModifyRemoteEC2HostName="ssh -o StrictHostKeyChecking=no -y -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo hostnamectl --static set-hostname '$RemoteEC2Hostname''"
     echo "CMDModifyRemoteEC2HostName: $CMDModifyRemoteEC2HostName"
     eval $CMDModifyRemoteEC2HostName
 
@@ -52,12 +52,12 @@ do
     echo "CMDCopyInstallScript: $CMDCopyInstallScript"
     eval $CMDCopyInstallScript
 
-    CMDExeScript="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'NETWORK=$NETWORK BEACON_NODE_CHECKPOINT_URL=$BEACON_NODE_CHECKPOINT_URL EXECUTION_ENDPOINT=$EXECUTION_ENDPOINT EXECUTION_JWTSECRET=$EXECUTION_JWTSECRET /home/ec2-user/Install.sh'"
+    CMDExeScript="ssh -o StrictHostKeyChecking=no -y -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'NETWORK=$NETWORK BEACON_NODE_CHECKPOINT_URL=$BEACON_NODE_CHECKPOINT_URL EXECUTION_ENDPOINT=$EXECUTION_ENDPOINT EXECUTION_JWTSECRET=$EXECUTION_JWTSECRET /home/ec2-user/Install.sh'"
     echo $CMDExeScript
     eval $CMDExeScript
     
     if [[ $RemoteEC2Hostname == *"geth"* ]]; then
-	CMDGetJWTSecret="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo cat /var/lib/geth/.ethereum/goerli/geth/jwtsecret'"
+	CMDGetJWTSecret="ssh -o StrictHostKeyChecking=no -y -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo cat /var/lib/geth/.ethereum/goerli/geth/jwtsecret'"
         BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
 	EXECUTION_ENDPOINT=$RemoteEC2IpAddr
 	EXECUTION_JWTSECRET=$(eval $CMDGetJWTSecret)
