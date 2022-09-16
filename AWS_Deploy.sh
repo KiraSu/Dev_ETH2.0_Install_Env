@@ -4,6 +4,22 @@ ARCHI=$(uname -m)
 NETWORK=goerli
 RUN_DIR=$(pwd)
 ResTagArr=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH_geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=TestETH_lighthouse_${NETWORK}}]")
+EBS_JSON="[\
+    {\
+        \"DeviceName\": \"/dev/xvda\",\
+        \"Ebs\": {\
+            \"VolumeType\": \"gp3\",\
+            \"VolumeSize\": 64\
+        }\
+    },\
+    {\
+	\"DeviceName\": \"/dev/sdf\",\
+        \"Ebs\": {\
+            \"VolumeType\": \"gp3\",\
+            \"VolumeSize\": 256\
+        }\
+    }\
+]"
 
 sudo yum update -y
 
@@ -33,6 +49,8 @@ echo $EC2_InfoCMD
 EC2_Info=$(eval $EC2_InfoCMD)
 echo "EC2_Info: ${EC2_Info}"
 
+echo $EBS_JSON > $RUN_DIR/ebs_mapping.json
+
 for tagValue in ${ResTagArr[@]}
 do
     EC2Result=$(aws ec2 run-instances --no-cli-page --image-id $(echo $EC2_Info | jq -r '.[0].ImageId') --count 1 --instance-type $(echo $EC2_Info | jq -r '.[0].InstanceType') --key-name $(echo $EC2_Info | jq -r '.[0].KeyName') --security-group-ids $(echo $EC2_Info | jq -r '.[0].GroupId') --subnet-id $(echo $EC2_Info | jq -r '.[0].SubnetId') --associate-public-ip-address --block-device-mappings file://$RUN_DIR/ebs_mapping.json --tag-specifications $tagValue)
@@ -44,7 +62,7 @@ do
     RemoteEC2IpAddr="$(echo $EC2Result | jq -r '.Instances[0].PrivateIpAddress')"
     RemoteSSHEC2Info="ec2-user@$RemoteEC2IpAddr"
 
-    CMDModifyRemoteEC2HostName="ssh -o StrictHostKeyChecking=no -y -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo hostnamectl --static set-hostname '$RemoteEC2Hostname''"
+    CMDModifyRemoteEC2HostName="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo hostnamectl --static set-hostname '$RemoteEC2Hostname''"
     echo "CMDModifyRemoteEC2HostName: $CMDModifyRemoteEC2HostName"
     eval $CMDModifyRemoteEC2HostName
 
@@ -52,12 +70,12 @@ do
     echo "CMDCopyInstallScript: $CMDCopyInstallScript"
     eval $CMDCopyInstallScript
 
-    CMDExeScript="ssh -o StrictHostKeyChecking=no -y -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'NETWORK=$NETWORK BEACON_NODE_CHECKPOINT_URL=$BEACON_NODE_CHECKPOINT_URL EXECUTION_ENDPOINT=$EXECUTION_ENDPOINT EXECUTION_JWTSECRET=$EXECUTION_JWTSECRET /home/ec2-user/Install.sh'"
+    CMDExeScript="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'NETWORK=$NETWORK BEACON_NODE_CHECKPOINT_URL=$BEACON_NODE_CHECKPOINT_URL EXECUTION_ENDPOINT=$EXECUTION_ENDPOINT EXECUTION_JWTSECRET=$EXECUTION_JWTSECRET /home/ec2-user/Install.sh'"
     echo $CMDExeScript
     eval $CMDExeScript
     
     if [[ $RemoteEC2Hostname == *"geth"* ]]; then
-	CMDGetJWTSecret="ssh -o StrictHostKeyChecking=no -y -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo cat /var/lib/geth/.ethereum/goerli/geth/jwtsecret'"
+	CMDGetJWTSecret="ssh -i $RUN_DIR/key.pem $RemoteSSHEC2Info 'sudo cat /var/lib/geth/.ethereum/goerli/geth/jwtsecret'"
         BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
 	EXECUTION_ENDPOINT=$RemoteEC2IpAddr
 	EXECUTION_JWTSECRET=$(eval $CMDGetJWTSecret)
