@@ -6,22 +6,23 @@ SUB_HOSTNAME_GETH=geth
 CURRENT_HOST_CLIENT=
 CMAKE_VERSION=3.24.1
 GETH_TAG_VERSION=v1.10.23
+CONFIG_FILE=$HOME/config.json
+JWT_SECRET_FILE_PATH=
 
-#############################################################################
-#NETWORK=goerli
-#Consensus Client Config
-#BEACON_NODE_CHECKPOINT_URL=https://goerli.checkpoint-sync.ethdevops.io
-#EXECUTION_ENDPOINT=172.31.15.113
-#EXECUTION_JWTSECRET=0xd80f0ed48f72a86c2288035fd4b121f4c82634e4681f3f34859d8998eadc3609
-#############################################################################
+sudo yum update -y
+sudo yum install -y git gcc g++ make pkg-config llvm-dev libclang-dev clang openssl-devel go jq
+
+if [ -f "$CONFIG_FILE" ]; then
+    NETWORK=$(cat $CONFIG_FILE | jq -r '.NETWORK')
+    BEACON_NODE_CHECKPOINT_URL=$(cat $CONFIG_FILE | jq -r '.BEACON_NODE_CHECKPOINT_URL')
+    EXECUTION_ENDPOINT=$(cat $CONFIG_FILE | jq -r '.EXECUTION_ENDPOINT')
+    EXECUTION_JWTSECRET=$(cat $CONFIG_FILE | jq -r '.EXECUTION_JWTSECRET')
+fi
 
 echo "NETWORK: $NETWORK"
 echo "BEACON_NODE_CHECKPOINT_URL: $BEACON_NODE_CHECKPOINT_URL"
 echo "EXECUTION_ENDPOINT: $EXECUTION_ENDPOINT"
 echo "EXECUTION_JWTSECRET: $EXECUTION_JWTSECRET"
-
-sudo yum update -y
-sudo yum install -y git gcc g++ make pkg-config llvm-dev libclang-dev clang openssl-devel go
 
 #Check cmake
 if ! command -v cmake &> /dev/null
@@ -34,6 +35,10 @@ fi
 
 if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     CURRENT_HOST_CLIENT=$SUB_HOSTNAME_LIGHTHOUSE
+    JWT_SECRET_FILE_PATH=/var/lib/lighthouse/.lighthouse/${NETWORK}
+
+    sudo mkdir -p $JWT_SECRET_FILE_PATH
+    echo $EXECUTION_JWTSECRET | sudo tee $JWT_SECRET_FILE_PATH/jwtsecret > /dev/null
 
     #Check rust
     if ! command -v rustc &> /dev/null
@@ -60,14 +65,6 @@ if [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_LIGHTHOUSE"* ]]; then
     fi
     cd $HOME/lighthouse && git checkout stable && make -j8 && sudo cp ./target/release/lighthouse /usr/local/bin
     
-    #Set JWTSecrect
-    if [[ $EXECUTION_JWTSECRET = "" ]]
-    then
-        EXECUTION_JWTSECRET=$HOME/data/.ethereum/goerli/geth/jwtsecret
-    else
-	echo -e "${EXECUTION_JWTSECRET}" | sudo tee /var/lib/lighthouse/.lighthouse/${NETWORK}/jwtsecret > /dev/null
-    fi
-
     #Add System Service
     echo -e "[Unit]\n\
 Description=Lighthouse Consensus Client (${NETWORK} Network)\n\
@@ -79,11 +76,12 @@ Group=${SUB_HOSTNAME_LIGHTHOUSE}\n\
 Type=simple\n\
 Restart=always\n\
 RestartSec=5\n\
-ExecStart=/usr/local/bin/lighthouse -d /var/lib/lighthouse/.lighthouse/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=${BEACON_NODE_CHECKPOINT_URL} --http --execution-endpoint http://${EXECUTION_ENDPOINT}:8551 --execution-jwt /var/lib/lighthouse/.lighthouse/${NETWORK}/jwtsecret\n\n\
+ExecStart=/usr/local/bin/lighthouse -d /var/lib/lighthouse/.lighthouse/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=${BEACON_NODE_CHECKPOINT_URL} --http --execution-endpoint http://${EXECUTION_ENDPOINT}:8551 --execution-jwt ${JWT_SECRET_FILE_PATH}/jwtsecret\n\n\
 [Install]\n\
 WantedBy=default.target\n" | sudo tee /etc/systemd/system/${SUB_HOSTNAME_LIGHTHOUSE}.service > /dev/null
 elif [[ $THIS_HOSTNAME == *"$SUB_HOSTNAME_GETH"* ]]; then
     CURRENT_HOST_CLIENT=$SUB_HOSTNAME_GETH
+    sudo mkdir -p /var/lib/$CURRENT_HOST_CLIENT
 
     #Create 'geth' user for system service
     if id "$SUB_HOSTNAME_GETH" &>/dev/null; then
@@ -120,9 +118,6 @@ else
     echo "Unknow hostname: ${THIS_HOSTNAME}"
     exit -1
 fi
-
-#Create Geth/Lightouse data director
-sudo mkdir -p /var/lib/$CURRENT_HOST_CLIENT
 
 #Create pv vg lv
 sudo pvcreate /dev/nvme1n1
