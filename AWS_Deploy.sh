@@ -74,6 +74,13 @@ then
     cd $HOME && sudo rm -r cmake-$CMAKE_VERSION && sudo rm cmake-$CMAKE_VERSION.tar.gz
 fi
 
+#Check rust
+if ! command -v rustc &> /dev/null
+then
+    cd $HOME && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs >> rust.sh && sudo chmod a+x rust.sh && ./rust.sh -y
+    source "$HOME/.cargo/env" && rm rust.sh
+fi
+
 ###### Get this ec2 instance info
 EC2_InfoCMD=$(echo "aws ec2 describe-instances --no-cli-page --query 'Reservations[*].Instances[?contains(InstanceId,\`$(curl http://169.254.169.254/latest/meta-data/instance-id)\`)]|[].{InstanceType:InstanceType,InstanceId:InstanceId,ImageId:ImageId,KeyName:KeyName,AvailabilityZone:Placement.AvailabilityZone,VpcId:VpcId,SubnetId:SubnetId,GroupId:NetworkInterfaces[0].Groups[0].GroupId}'")
 echo $EC2_InfoCMD
