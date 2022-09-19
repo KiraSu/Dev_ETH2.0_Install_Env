@@ -96,13 +96,19 @@ echo "EC2_Info: ${EC2_Info}"
 if [ ! -d "$HOME/go-ethereum" ]; then
     cd $HOME && git clone https://github.com/ethereum/go-ethereum.git
 fi
-#cd $HOME/go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8
+cd $HOME/go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8
 
 ###### Build lighthouse
 if [ ! -d "$HOME/lighthouse" ]; then
-    cd $HOME && git clone https://github.com/sigp/lighthouse.git
+    cd $HOME && git clone https://github.com/sigp/lighthouse.git && cd $HOME/lighthouse && git checkout stable && make -j8
+else
+    cd $HOME/lighthouse
+    if [ $(git log stable -n 1 --pretty=format:"%H") = $(git log remotes/origin/stable -n 1 --pretty=format:"%H") ]; then
+        echo "Lighthouse nothing change"
+    else
+        git pull && make -j8
+    fi
 fi
-#cd $HOME/lighthouse && git checkout stable && make -j8
 
 for tagValue in ${RES_TAG_ATTR[@]}
 do
