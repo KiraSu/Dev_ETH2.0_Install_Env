@@ -96,13 +96,13 @@ echo "EC2_Info: ${EC2_Info}"
 if [ ! -d "$HOME/go-ethereum" ]; then
     cd $HOME && git clone https://github.com/ethereum/go-ethereum.git
 fi
-cd $HOME/go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8
+#cd $HOME/go-ethereum && git checkout $GETH_TAG_VERSION && make all -j8
 
 ###### Build lighthouse
 if [ ! -d "$HOME/lighthouse" ]; then
     cd $HOME && git clone https://github.com/sigp/lighthouse.git
 fi
-cd $HOME/lighthouse && git checkout stable && make -j8
+#cd $HOME/lighthouse && git checkout stable && make -j8
 
 for tagValue in ${RES_TAG_ATTR[@]}
 do
@@ -121,29 +121,24 @@ if [ ! -f "$HOME/${MetaModuleName}_ec2_instance.json" ]; then
     echo $RemoteCMDExe
     eval $RemoteCMDExe
 
-    if [[ -z $GETH_JWT_SECRECT ]]; then
-        ModuleRunCMD="/usr/local/bin/${MetaModuleName} --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --datadir /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}"
-    else
-        ModuleRunCMD="/usr/local/bin/${MetaModuleName} -d /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=$BEACON_NODE_CHECKPOINT_URL --http --execution-endpoint http://$GETH_ENDPOINT --execution-jwt /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/jwtsecret"
-	RemoteCMDExe="$RemoteSSH 'sudo mkdir -p /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK} && echo $GETH_JWT_SECRECT | sudo tee /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/jwtsecret > /dev/null'"
-	echo $RemoteCMDExe
-	eval $RemoteCMDExe
-    fi
+    #if [[ $MetaModuleName == "geth" ]]; then
+        #ModuleRunCMD="/usr/local/bin/${MetaModuleName} --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --datadir /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}"
+    #else
+        #ModuleRunCMD="/usr/local/bin/${MetaModuleName} -d /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=$BEACON_NODE_CHECKPOINT_URL --http --execution-endpoint http://$GETH_ENDPOINT --execution-jwt /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/jwtsecret"
+	#RemoteCMDExe="$RemoteSSH 'sudo mkdir -p /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK} && echo $GETH_JWT_SECRECT | sudo tee /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/jwtsecret > /dev/null'"
+	#echo $RemoteCMDExe
+	#eval $RemoteCMDExe
+    #fi
     
     ###### Add 'geth/lighthouse' user
-    RemoteCMDExe="$RemoteSSH 'if [ id \"${MetaModuleName}\" &>/dev/null ]; then echo ok; else sudo useradd --no-create-home --shell /bin/false ${MetaModuleName}; fi'"
-    echo $RemoteCMDExe
-    eval $RemoteCMDExe
-    
-    ###### Change /var/lib/geth or /var/lib/lighthouse directory owner
-    RemoteCMDExe="$RemoteSSH 'sudo chown -R ${MetaModuleName}:${MetaModuleName} /var/lib/${MetaModuleName}'"
-    echo $RemoteCMDExe
-    eval $RemoteCMDExe
+    #RemoteCMDExe="$RemoteSSH 'if [ id \"${MetaModuleName}\" &>/dev/null ]; then echo ok; else sudo useradd --no-create-home --shell /bin/false ${MetaModuleName} && sudo chown -R ${MetaModuleName}:${MetaModuleName} /var/lib/${MetaModuleName}; fi'"
+    #echo $RemoteCMDExe
+    #eval $RemoteCMDExe
     
     ###### Create service config file
-    RemoteCMDExe="$RemoteSSH 'echo -e [Unit]\\\\nDescription=${MetaModuleName} Execution Client\\\\nWants=network.target\\\\nAfter=network.target\\\\n\\\\n[Service]\\\\nUser=${MetaModuleName}\\\\nGroup=${MetaModuleName}\\\\nType=simple\\\\nRestart=always\\\\nRestartSec=5\\\\nExecStart=${ModuleRunCMD}\\\\n\\\\n[Install]\\\\nWantedBy=default.target\\\\n | sudo tee /etc/systemd/system/${MetaModuleName}.service > /dev/null'"
-    echo $RemoteCMDExe
-    eval $RemoteCMDExe
+    #RemoteCMDExe="$RemoteSSH 'echo -e [Unit]\\\\nDescription=${MetaModuleName} Execution Client\\\\nWants=network.target\\\\nAfter=network.target\\\\n\\\\n[Service]\\\\nUser=${MetaModuleName}\\\\nGroup=${MetaModuleName}\\\\nType=simple\\\\nRestart=always\\\\nRestartSec=5\\\\nExecStart=${ModuleRunCMD}\\\\n\\\\n[Install]\\\\nWantedBy=default.target\\\\n | sudo tee /etc/systemd/system/${MetaModuleName}.service > /dev/null'"
+    #echo $RemoteCMDExe
+    #eval $RemoteCMDExe
 else
     RemoteEC2Result=$(cat $HOME/${MetaModuleName}_ec2_instance.json)
     RemoteEC2IpAddr="$(echo $RemoteEC2Result | jq -r '.Instances[0].PrivateIpAddress')"
@@ -155,12 +150,37 @@ RemoteCMDExe="$RemoteSSH 'while systemctl is-active ${MetaModuleName} &>/dev/nul
 echo $RemoteCMDExe
 eval $RemoteCMDExe
 
+###### Fill geth/lighthouse ModuleRunCMD
+if [[ $MetaModuleName == "geth" ]]; then
+    ModuleRunCMD="/usr/local/bin/${MetaModuleName} --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --datadir /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}"
+else
+    LighthouseJWTSecrectDir=/var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}
+    ModuleRunCMD="/usr/local/bin/${MetaModuleName} -d $LighthouseJWTSecrectDir --network ${NETWORK} bn --checkpoint-sync-url=$BEACON_NODE_CHECKPOINT_URL --http --execution-endpoint http://$GETH_ENDPOINT --execution-jwt $LighthouseJWTSecrectDir/jwtsecret"
+    RemoteCMDExe="$RemoteSSH 'sudo mkdir -p $LighthouseJWTSecrectDir && echo $GETH_JWT_SECRECT | sudo tee $LighthouseJWTSecrectDir/jwtsecret > /dev/null'"
+    echo $RemoteCMDExe
+    eval $RemoteCMDExe
+fi
+
+###### Create service config file
+RemoteCMDExe="$RemoteSSH 'echo -e [Unit]\\\\nDescription=${MetaModuleName} Execution Client\\\\nWants=network.target\\\\nAfter=network.target\\\\n\\\\n[Service]\\\\nUser=${MetaModuleName}\\\\nGroup=${MetaModuleName}\\\\nType=simple\\\\nRestart=always\\\\nRestartSec=5\\\\nExecStart=${ModuleRunCMD}\\\\n\\\\n[Install]\\\\nWantedBy=default.target\\\\n | sudo tee /etc/systemd/system/${MetaModuleName}.service > /dev/null'"
+echo $RemoteCMDExe
+eval $RemoteCMDExe
+
+###### Add 'geth/lighthouse' user and change owner /var/lib/geth(lighthouse)
+RemoteCMDExe="$RemoteSSH 'if id -u $MetaModuleName >/dev/null 2>&1; then echo ok; else sudo useradd --no-create-home --shell /bin/false ${MetaModuleName}; fi && sudo chown -R ${MetaModuleName}:${MetaModuleName} /var/lib/${MetaModuleName}'"
+echo $RemoteCMDExe
+eval $RemoteCMDExe
+
 ###### Copy all Geth/Lighthouse bin file to remote ec2 /usr/local/bin
 RemoteCMDExe="$RemoteSSH '[ -d $HOME/${MetaModuleName} ] && echo ok || mkdir -p $HOME/${MetaModuleName}'"
 echo $RemoteCMDExe
 eval $RemoteCMDExe
 if [ $? -eq 0 ]; then
-    RemoteCMDExe="scp -i $RUN_DIR/key.pem $HOME/go-ethereum/build/bin/* ec2-user@$RemoteEC2IpAddr:~/${MetaModuleName}"
+    if [[ -z $GETH_JWT_SECRECT ]]; then
+        RemoteCMDExe="scp -i $RUN_DIR/key.pem $HOME/go-ethereum/build/bin/* ec2-user@$RemoteEC2IpAddr:~/${MetaModuleName}"
+    else
+	RemoteCMDExe="scp -i $RUN_DIR/key.pem $HOME/${MetaModuleName}/target/release/${MetaModuleName} ec2-user@$RemoteEC2IpAddr:~/${MetaModuleName}"
+    fi
     echo $RemoteCMDExe
     eval $RemoteCMDExe
     
@@ -172,10 +192,10 @@ if [ $? -eq 0 ]; then
     echo $RemoteCMDExe
     eval $RemoteCMDExe
 
-    if [[ -z $GETH_JWT_SECRECT ]]; then
+    if [[ $MetaModuleName == "geth" ]]; then
 	echo "Waiting $MetaModuleName service start..."
         sleep 5s
-        RemoteCMDExe="$RemoteSSH 'cat /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/${MetaModuleName}/jwtsecret'"
+        RemoteCMDExe="$RemoteSSH 'sudo cat /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/${MetaModuleName}/jwtsecret'"
 	echo $RemoteCMDExe
 	GETH_JWT_SECRECT=$(eval $RemoteCMDExe)
 	GETH_ENDPOINT="$RemoteEC2IpAddr:8551"
