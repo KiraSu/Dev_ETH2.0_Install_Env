@@ -114,7 +114,7 @@ for tagValue in ${RES_TAG_ATTR[@]}
 do
 MetaModuleName=$(echo "$tagValue" | cut -d '_' -f 2)
 ###### Create Geth/Lighthouse EC2 Instance if not exist [geth(lighthouse)_ec2_instance.json] otherwise load the [geth(lighthouse)_ec2_instance.json] file to upgrade geth service
-if [ ! -f "$HOME/${MetaModuleName}_ec2_instance.json" ]; then
+if [ ! -f "$HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json" ]; then
     ###### Call create EC2 instance
     create_ec2_instance $INSTANCE_TYPE $tagValue
     echo $RemoteEC2Result > $HOME/${MetaModuleName}_ec2_instance.json
@@ -146,7 +146,7 @@ if [ ! -f "$HOME/${MetaModuleName}_ec2_instance.json" ]; then
     #echo $RemoteCMDExe
     #eval $RemoteCMDExe
 else
-    RemoteEC2Result=$(cat $HOME/${MetaModuleName}_ec2_instance.json)
+    RemoteEC2Result=$(cat $HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json)
     RemoteEC2IpAddr="$(echo $RemoteEC2Result | jq -r '.Instances[0].PrivateIpAddress')"
     RemoteSSH="ssh -i $RUN_DIR/key.pem ec2-user@$RemoteEC2IpAddr"
 fi
