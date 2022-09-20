@@ -119,7 +119,7 @@ MetaModuleName=$(echo "$tagValue" | cut -d '_' -f 2)
 if [ ! -f "$HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json" ]; then
     ###### Call create EC2 instance
     create_ec2_instance $INSTANCE_TYPE $tagValue
-    echo $RemoteEC2Result > $HOME/${MetaModuleName}_ec2_instance.json
+    echo $RemoteEC2Result > $HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json
     
     RemoteEC2IpAddr="$(echo $RemoteEC2Result | jq -r '.Instances[0].PrivateIpAddress')"
     RemoteSSH="ssh -i $RUN_DIR/key.pem ec2-user@$RemoteEC2IpAddr"
