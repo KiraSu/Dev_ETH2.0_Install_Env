@@ -2,6 +2,7 @@
 
 ARCHI=$(uname -m)
 NETWORK=goerli
+ENV=Test
 EC2_Info=
 INSTANCE_TYPE=c7g.large
 RUN_DIR=$(pwd)
@@ -11,8 +12,9 @@ GETH_JWT_SECRECT=
 declare -l MetaModuleName=
 ModuleRunCMD=
 RemoteEC2Result=
+#https://mainnet-checkpoint-sync.stakely.io
 BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
-RES_TAG_ATTR=("ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=TestETH2.0_Lighthouse_${NETWORK}}]")
+RES_TAG_ATTR=("ResourceType=instance,Tags=[{Key=Name,Value=${ENV}ETH2.0_Geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=${ENV}ETH2.0_Lighthouse_${NETWORK}}]")
 EBS_JSON="[\
     {\
         \"DeviceName\": \"/dev/xvda\",\
