@@ -4,7 +4,7 @@ ARCHI=$(uname -m)
 NETWORK=goerli
 ENV=Test
 EC2_Info=
-INSTANCE_TYPE=c7g.large
+INSTANCE_TYPE=c7g.xlarge
 RUN_DIR=$(pwd)
 LIGHTHOUSE_CONFIG_JSON=
 GETH_ENDPOINT=
@@ -115,11 +115,12 @@ fi
 for tagValue in ${RES_TAG_ATTR[@]}
 do
 MetaModuleName=$(echo "$tagValue" | cut -d '_' -f 2)
+EC2ConfigName=${MetaModuleName}_${NETWORK}_ec2_instance.json
 ###### Create Geth/Lighthouse EC2 Instance if not exist [geth(lighthouse)_ec2_instance.json] otherwise load the [geth(lighthouse)_ec2_instance.json] file to upgrade geth service
-if [ ! -f "$HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json" ]; then
+if [ ! -f "$HOME/$EC2ConfigName" ]; then
     ###### Call create EC2 instance
     create_ec2_instance $INSTANCE_TYPE $tagValue
-    echo $RemoteEC2Result > $HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json
+    echo $RemoteEC2Result > $HOME/$EC2ConfigName
     
     RemoteEC2IpAddr="$(echo $RemoteEC2Result | jq -r '.Instances[0].PrivateIpAddress')"
     RemoteSSH="ssh -i $RUN_DIR/key.pem ec2-user@$RemoteEC2IpAddr"
@@ -128,27 +129,8 @@ if [ ! -f "$HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json" ]; then
     RemoteCMDExe="$RemoteSSH 'sudo yum update -y && sudo mkdir -p /var/lib/${MetaModuleName} && sudo pvcreate /dev/nvme1n1 && sudo vgcreate vg_default /dev/sdf && sudo lvcreate -l 100%VG -n lv_data vg_default && sudo mkfs.ext4 /dev/vg_default/lv_data && sudo mount -t ext4 /dev/vg_default/lv_data /var/lib/${MetaModuleName} && echo \"/dev/mapper/vg_default-lv_data /var/lib/${MetaModuleName} ext4 defaults 0 0\" | sudo tee -a /etc/fstab'"
     echo $RemoteCMDExe
     eval $RemoteCMDExe
-
-    #if [[ $MetaModuleName == "geth" ]]; then
-        #ModuleRunCMD="/usr/local/bin/${MetaModuleName} --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --datadir /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}"
-    #else
-        #ModuleRunCMD="/usr/local/bin/${MetaModuleName} -d /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK} --network ${NETWORK} bn --checkpoint-sync-url=$BEACON_NODE_CHECKPOINT_URL --http --execution-endpoint http://$GETH_ENDPOINT --execution-jwt /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/jwtsecret"
-	#RemoteCMDExe="$RemoteSSH 'sudo mkdir -p /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK} && echo $GETH_JWT_SECRECT | sudo tee /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}/jwtsecret > /dev/null'"
-	#echo $RemoteCMDExe
-	#eval $RemoteCMDExe
-    #fi
-    
-    ###### Add 'geth/lighthouse' user
-    #RemoteCMDExe="$RemoteSSH 'if [ id \"${MetaModuleName}\" &>/dev/null ]; then echo ok; else sudo useradd --no-create-home --shell /bin/false ${MetaModuleName} && sudo chown -R ${MetaModuleName}:${MetaModuleName} /var/lib/${MetaModuleName}; fi'"
-    #echo $RemoteCMDExe
-    #eval $RemoteCMDExe
-    
-    ###### Create service config file
-    #RemoteCMDExe="$RemoteSSH 'echo -e [Unit]\\\\nDescription=${MetaModuleName} Execution Client\\\\nWants=network.target\\\\nAfter=network.target\\\\n\\\\n[Service]\\\\nUser=${MetaModuleName}\\\\nGroup=${MetaModuleName}\\\\nType=simple\\\\nRestart=always\\\\nRestartSec=5\\\\nExecStart=${ModuleRunCMD}\\\\n\\\\n[Install]\\\\nWantedBy=default.target\\\\n | sudo tee /etc/systemd/system/${MetaModuleName}.service > /dev/null'"
-    #echo $RemoteCMDExe
-    #eval $RemoteCMDExe
 else
-    RemoteEC2Result=$(cat $HOME/${MetaModuleName}_${NETWORK}_ec2_instance.json)
+    RemoteEC2Result=$(cat $HOME/$EC2ConfigName)
     RemoteEC2IpAddr="$(echo $RemoteEC2Result | jq -r '.Instances[0].PrivateIpAddress')"
     RemoteSSH="ssh -i $RUN_DIR/key.pem ec2-user@$RemoteEC2IpAddr"
 fi
