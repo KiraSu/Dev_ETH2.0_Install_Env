@@ -1,10 +1,13 @@
 #!/bin/bash
 
-ARCHI=$(uname -m)
 NETWORK=goerli
 ENV=Test
-EC2_Info=
 INSTANCE_TYPE=c7g.xlarge
+#https://mainnet-checkpoint-sync.stakely.io
+BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
+
+ARCHI=$(uname -m)
+EC2_Info=
 RUN_DIR=$(pwd)
 LIGHTHOUSE_CONFIG_JSON=
 GETH_ENDPOINT=
@@ -12,8 +15,6 @@ GETH_JWT_SECRECT=
 declare -l MetaModuleName=
 ModuleRunCMD=
 RemoteEC2Result=
-#https://mainnet-checkpoint-sync.stakely.io
-BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
 RES_TAG_ATTR=("ResourceType=instance,Tags=[{Key=Name,Value=${ENV}ETH2.0_Geth_${NETWORK}}]" "ResourceType=instance,Tags=[{Key=Name,Value=${ENV}ETH2.0_Lighthouse_${NETWORK}}]")
 EBS_JSON="[\
     {\
