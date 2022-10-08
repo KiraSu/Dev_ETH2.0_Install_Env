@@ -152,13 +152,12 @@ else
     if [ -n "$VALIDATOR_MONITOR_PUBKEY" ]; then
         ModuleRunCMD+=" --validator-monitor-pubkeys $VALIDATOR_MONITOR_PUBKEY"
     fi
+    if [ -n "$SUGGESTED_FEE_RECIEPIENT" ]; then
+        ModuleRunCMD+=" --suggested-fee-recipient $SUGGESTED_FEE_RECIEPIENT"
+    fi
     RemoteCMDExe="$RemoteSSH 'sudo mkdir -p $LighthouseJWTSecrectDir && echo $GETH_JWT_SECRECT | sudo tee $LighthouseJWTSecrectDir/jwtsecret > /dev/null'"
     echo $RemoteCMDExe
     eval $RemoteCMDExe
-fi
-
-if [ -n "$SUGGESTED_FEE_RECIEPIENT" ]; then
-    ModuleRunCMD+=" --suggested-fee-recipient $SUGGESTED_FEE_RECIEPIENT"
 fi
 
 ###### Create service config file
