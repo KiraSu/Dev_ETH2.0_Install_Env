@@ -5,6 +5,8 @@ ENV=Test
 INSTANCE_TYPE=c7g.xlarge
 #https://mainnet-checkpoint-sync.stakely.io
 BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
+VALIDATOR_MONITOR_PUBKEY=
+SUGGESTED_FEE_RECIEPIENT=
 
 ARCHI=$(uname -m)
 EC2_Info=
@@ -146,10 +148,17 @@ if [[ $MetaModuleName == "geth" ]]; then
     ModuleRunCMD="/usr/local/bin/${MetaModuleName} --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --metrics --metrics.addr 0.0.0.0 --metrics.expensive --datadir /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}"
 else
     LighthouseJWTSecrectDir=/var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}
-    ModuleRunCMD="/usr/local/bin/${MetaModuleName} -d $LighthouseJWTSecrectDir --network ${NETWORK} bn --checkpoint-sync-url=$BEACON_NODE_CHECKPOINT_URL --http --http-address 0.0.0.0 --metrics --metrics-address 0.0.0.0 --execution-endpoint http://$GETH_ENDPOINT --execution-jwt $LighthouseJWTSecrectDir/jwtsecret"
+    ModuleRunCMD="/usr/local/bin/${MetaModuleName} -d $LighthouseJWTSecrectDir --network ${NETWORK} bn --checkpoint-sync-url=$BEACON_NODE_CHECKPOINT_URL --http --http-address 0.0.0.0 --metrics --metrics-address 0.0.0.0 --execution-endpoint http://$GETH_ENDPOINT --execution-jwt $LighthouseJWTSecrectDir/jwtsecret --validator-monitor-auto"
+    if [ -n "$VALIDATOR_MONITOR_PUBKEY" ]; then
+        ModuleRunCMD+=" --validator-monitor-pubkeys $VALIDATOR_MONITOR_PUBKEY"
+    fi
     RemoteCMDExe="$RemoteSSH 'sudo mkdir -p $LighthouseJWTSecrectDir && echo $GETH_JWT_SECRECT | sudo tee $LighthouseJWTSecrectDir/jwtsecret > /dev/null'"
     echo $RemoteCMDExe
     eval $RemoteCMDExe
+fi
+
+if [ -n "$SUGGESTED_FEE_RECIEPIENT" ]; then
+    ModuleRunCMD+=" --suggested-fee-recipient $SUGGESTED_FEE_RECIEPIENT"
 fi
 
 ###### Create service config file
