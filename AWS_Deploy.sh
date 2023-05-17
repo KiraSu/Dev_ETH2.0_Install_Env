@@ -1,10 +1,15 @@
 #!/bin/bash
 
-NETWORK=goerli
-ENV=Test
+#goerli
+#mainnet/goerli
+NETWORK=mainnet
+#Product/Dev
+ENV=Product
 INSTANCE_TYPE=c7g.xlarge
+#https://goerli.checkpoint-sync.ethdevops.io
 #https://mainnet-checkpoint-sync.stakely.io
-BEACON_NODE_CHECKPOINT_URL="https://goerli.checkpoint-sync.ethdevops.io"
+BEACON_NODE_CHECKPOINT_URL="https://sync-mainnet.beaconcha.in"
+#0xb5a2e1614127adbce67f35a0dec134891e6ea021f82b4cc48419012e1a8f10bd93094062f28fc928f4c8967920c49948
 VALIDATOR_MONITOR_PUBKEY=
 
 ARCHI=$(uname -m)
@@ -28,13 +33,20 @@ EBS_JSON="[\
     {\
 	\"DeviceName\": \"/dev/sdf\",\
         \"Ebs\": {\
-            \"VolumeType\": \"gp3\",\
-            \"VolumeSize\": 256\
+            \"VolumeType\": \"st1\",\
+            \"VolumeSize\": 512\
+        }\
+    },\
+    {\
+        \"DeviceName\": \"/dev/sdg\",\
+        \"Ebs\": {\
+            \"VolumeType\": \"st1\",\
+            \"VolumeSize\": 512\
         }\
     }\
 ]"
 CMAKE_VERSION=3.24.1
-GETH_TAG_VERSION=v1.10.23
+GETH_TAG_VERSION=v1.11.6
 
 create_ec2_instance() {
     echo $EBS_JSON > $RUN_DIR/ebs_mapping.json
@@ -107,12 +119,14 @@ if [ ! -d "$HOME/lighthouse" ]; then
     cd $HOME && git clone https://github.com/sigp/lighthouse.git && cd $HOME/lighthouse && git checkout stable && make -j8
 else
     cd $HOME/lighthouse
-    if [ $(git log stable -n 1 --pretty=format:"%H") = $(git log remotes/origin/stable -n 1 --pretty=format:"%H") ]; then
-        echo "Lighthouse nothing change"
-    else
-        git pull && make -j8
-    fi
+#    if [ $(git log stable -n 1 --pretty=format:"%H") = $(git log remotes/origin/stable -n 1 --pretty=format:"%H") ]; then
+#        echo "Lighthouse nothing change"
+#    else
+#        git pull && make -j8
+#    fi
 fi
+git checkout stable && make -j8
+
 
 for tagValue in ${RES_TAG_ATTR[@]}
 do
@@ -144,7 +158,7 @@ eval $RemoteCMDExe
 
 ###### Fill geth/lighthouse ModuleRunCMD
 if [[ $MetaModuleName == "geth" ]]; then
-    ModuleRunCMD="/usr/local/bin/${MetaModuleName} --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --metrics --metrics.addr 0.0.0.0 --metrics.expensive --datadir /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}"
+    ModuleRunCMD="/usr/local/bin/${MetaModuleName} --${NETWORK} --http --http.addr 0.0.0.0 --authrpc.addr 0.0.0.0 --metrics --metrics.addr 0.0.0.0 --metrics.expensive --ws --ws.addr 0.0.0.0 --datadir /var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK} --txlookuplimit 0"
 else
     LighthouseJWTSecrectDir=/var/lib/${MetaModuleName}/.${MetaModuleName}/${NETWORK}
     ModuleRunCMD="/usr/local/bin/${MetaModuleName} -d $LighthouseJWTSecrectDir --network ${NETWORK} bn --checkpoint-sync-url=$BEACON_NODE_CHECKPOINT_URL --http --http-address 0.0.0.0 --metrics --metrics-address 0.0.0.0 --execution-endpoint http://$GETH_ENDPOINT --execution-jwt $LighthouseJWTSecrectDir/jwtsecret --validator-monitor-auto"
